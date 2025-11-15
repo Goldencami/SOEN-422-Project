@@ -55,7 +55,9 @@ The device can:
 * reduce uncertainty caused by invisible system failures
 
 ## State Machine Diagram
-<img width="900" height="1000" alt="Image" src="https://github.com/user-attachments/assets/a9b68d44-421a-4f2c-9537-101e9257418a" />
+<img width="900" height="1000" alt="State Machine Diagram" src="https://github.com/user-attachments/assets/a9b68d44-421a-4f2c-9537-101e9257418a" />
+
+[Link to state machine](https://drive.google.com/file/d/1GU_f6bgyF_i9jYTB-THIqsMhVd-O8-gB/view?usp=sharing)
 
 ## Team Members
 * Maria Camila Guzman (40239038)
