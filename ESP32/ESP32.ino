@@ -8,36 +8,6 @@
 
 String correctCode = "test1234";
 
-unsigned long servoDelay = 20; // change servo position every 20ms
-unsigned long servoLastDelay = 0;
-
-Servo myServo; // create servo object to control a servo
-int pos = 0; // variable to store the servo position
-bool isUnlocking = false;
-bool isLocking = false;
-
-// servo will rotate from 0 to 180 degrees
-void unlockDoor() {
-  unsigned long timeNow = millis();
-  if ((timeNow - servoLastDelay > servoDelay) && pos < 180) {
-    myServo.write(pos);
-    Serial.println("Unlocking: pos = " + String(pos));
-    ++pos;
-    servoLastDelay = timeNow;
-  }
-}
-
-// servo will rotate from 180 to 0 degrees
-void lockDoor() {
-  unsigned long timeNow = millis();
-  if ((timeNow - servoLastDelay > servoDelay) && pos > 0) {
-    myServo.write(pos);
-    Serial.println("Locking: pos = " + String(pos));
-    --pos;
-    servoLastDelay = timeNow;
-  }
-}
-
 void setup() {
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
@@ -48,7 +18,7 @@ void setup() {
 
 void loop() {
   if (Serial2.available()) { // Only read if data is present
-    String data = Serial2.readString(); // Read full message
+    String data = Serial2.readStringUntil('\n'); // Read full message
     data.trim(); // remove any trailing newline or spaces
 
     Serial.print("Message Received: ");

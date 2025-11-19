@@ -1,4 +1,8 @@
 #include <LiquidCrystal.h>
+#include <SoftwareSerial.h>
+#define RX_PIN 12
+#define TX_PIN 13
+
 #define ECHO_PIN 3
 #define TRIGGER_PIN 4
 
@@ -8,6 +12,8 @@
 #define LCD_D5_PIN 7
 #define LCD_D6_PIN 8
 #define LCD_D7_PIN 9
+
+SoftwareSerial espSerial(RX_PIN, TX_PIN);
 
 LiquidCrystal lcd(
   LCD_RS_PIN,
@@ -19,6 +25,8 @@ LiquidCrystal lcd(
 );
 
 bool isDetected = false;
+String userInput = "";
+bool waitingForInput = false;
 
 unsigned long lastUltrasonicTrigger = millis();
 unsigned long ultrasonicTriggerDelay = 100;
@@ -66,6 +74,7 @@ void clearRow(int row) {
 
 void setup() {
   Serial.begin(115200);
+  espSerial.begin(115200);
 
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIGGER_PIN, OUTPUT);
@@ -77,11 +86,6 @@ void setup() {
 void loop() {
   unsigned long timeNow = millis();
 
-  // if(timeNow - lastUARTdelay > UARTdelay) {
-  //   Serial.println("Hello Boss"); // message sent to esp32
-  //   lastUARTdelay += UARTdelay;
-  // }
-
   if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
     lastUltrasonicTrigger += ultrasonicTriggerDelay;
     triggerUltrasonicSensor();
@@ -91,11 +95,15 @@ void loop() {
     newDistanceAvailable = false;
     double distance = getUltrasonicDistance();
 
-    if(distance <= 35) { //cm
+    if(distance <= 35) { // c,
+      if(!waitingForInput) {
+        waitingForInput = true; // start waiting for input
+      }
       isDetected = true;
-    }
-    else {
+    } else {
       isDetected = false;
+      waitingForInput = false; // cancel waiting if person leaves
+      userInput = "";
     }
 
     lcd.setCursor(0, 0);
@@ -111,8 +119,17 @@ void loop() {
     clearRow(1);
   }
 
-  if(timeNow - lastUARTdelay > UARTdelay) {
-    Serial.println(isDetected); // message sent to esp32
-    lastUARTdelay += UARTdelay;
+  // Non-blocking read from Serial Monitor
+  while(Serial.available() > 0 && waitingForInput) {
+    char c = Serial.read();       // read one character at a time
+    if(c == '\n') {               // end of input
+      espSerial.println(userInput); // send to ESP32
+      Serial.print("Sent to ESP32: ");
+      Serial.println(userInput);
+      userInput = "";
+      waitingForInput = false;
+    } else {
+      userInput += c;             // build the string
+    }
   }
 }
