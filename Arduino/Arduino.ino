@@ -27,6 +27,9 @@ volatile unsigned long pulseInTimeBegin;
 volatile unsigned long pulseInTimeEnd;
 volatile bool newDistanceAvailable = false;
 
+unsigned long UARTdelay = 1000;
+unsigned long lastUARTdelay = millis();
+
 double getUltrasonicDistance() {
   double durationMicros = pulseInTimeEnd- pulseInTimeBegin; 
   double distance = durationMicros/58.0; //cm
@@ -63,7 +66,6 @@ void clearRow(int row) {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Starting Arduino...");
 
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIGGER_PIN, OUTPUT);
@@ -73,9 +75,12 @@ void setup() {
 }
 
 void loop() {
-  // Serial.println("Hello Boss"); // message sent to esp32
-  
   unsigned long timeNow = millis();
+
+  // if(timeNow - lastUARTdelay > UARTdelay) {
+  //   Serial.println("Hello Boss"); // message sent to esp32
+  //   lastUARTdelay += UARTdelay;
+  // }
 
   if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
     lastUltrasonicTrigger += ultrasonicTriggerDelay;
@@ -105,5 +110,9 @@ void loop() {
   else {
     clearRow(1);
   }
-  // delay(1500);
+
+  if(timeNow - lastUARTdelay > UARTdelay) {
+    Serial.println(isDetected); // message sent to esp32
+    lastUARTdelay += UARTdelay;
+  }
 }
