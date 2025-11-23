@@ -120,6 +120,7 @@ void setup() {
   pinMode(RED_LED_PIN, OUTPUT);
 
   pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
   pinMode(BTN_PIN, INPUT);
 
   myServo.attach(SERVO_PIN); // attaches the servo to pin
@@ -131,7 +132,8 @@ void loop() {
   if(alarmOn) {
     return; // block everything else while alarm is active
   }
-
+  // digitalWrite(BUZZER_PIN, LOW);
+  
   if (Serial2.available()) { // Only read if data is present
     String data = Serial2.readStringUntil('\n'); // Read full message
     data.trim(); // remove any trailing newline or spaces
