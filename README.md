@@ -59,6 +59,11 @@ The device can:
 
 [Link to state machine](https://drive.google.com/file/d/1GU_f6bgyF_i9jYTB-THIqsMhVd-O8-gB/view?usp=sharing)
 
+
+## Library
+Please install the following library:
+* RFID_MFRC522v2
+
 ## Team Members
 * Maria Camila Guzman (40239038)
 * Keshan Kathiripilay (40249407)
