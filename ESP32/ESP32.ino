@@ -6,9 +6,13 @@
 #define GREEN_LED_PIN 12
 #define RED_LED_PIN 14
 #define BTN_PIN 36
+#define MQ1_PIN 39
 
 // String correctCode = "test1234";
 String correctUid = "91 21 1E AA"; // replace on developer's side
+
+unsigned long MQdelay = 400;
+unsigned long lastMQdelay = 0;
 
 unsigned int debounceDelay = 50;
 unsigned long lastBtnDebounce = millis();
@@ -74,6 +78,8 @@ void handleFireAlarm() {
     Serial.println("ALARM ACTIVATED!");
   }
 
+  detectSmoke();
+
   if(alarmOn) {
     unlockDoor();
     // Toggle buzzer ON/OFF every beepInterval
@@ -93,6 +99,23 @@ void handleFireAlarm() {
       Serial.println("Alarm ended.");
       lockDoor();
     }
+  }
+}
+
+void detectSmoke() {
+  unsigned long timeNow = millis();
+
+  if (timeNow - lastMQdelay >= MQdelay) {
+    lastMQdelay = timeNow;
+    
+    if(analogRead(MQ1_PIN) > 3000) { // test value for smoke detection
+      alarmOn = true;
+      Serial.println("FIRE ALARM ACTIVATED!");
+    }
+    else {
+      alarmOn = false;
+    }
+    // Serial.println(analogRead(MQ1_PIN));
   }
 }
 

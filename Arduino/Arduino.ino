@@ -35,11 +35,11 @@ LiquidCrystal lcd(
   LCD_D7_PIN
 );
 
+String uid = "";
+bool isScanned = false;
 bool isDetected = false;
 // String userInput = "";
 // bool waitingForInput = false;
-String uid = "";
-bool isScanned = false;
 
 unsigned long lastUltrasonicTrigger = millis();
 unsigned long ultrasonicTriggerDelay = 100;
