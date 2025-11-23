@@ -7,7 +7,8 @@
 #define RED_LED_PIN 14
 #define BTN_PIN 36
 
-String correctCode = "test1234";
+// String correctCode = "test1234";
+String correctUid = "91 21 1E AA"; // replace on developer's side
 
 unsigned int debounceDelay = 50;
 unsigned long lastBtnDebounce = millis();
@@ -141,7 +142,7 @@ void loop() {
     Serial.print("Message Received: ");
     Serial.println(data);
 
-    if(correctCode == data) {
+    if(correctUid == data) {
       isUnlocking = true;
       isLocking = false;
     }

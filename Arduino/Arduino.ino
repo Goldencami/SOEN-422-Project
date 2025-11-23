@@ -1,7 +1,12 @@
 #include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
-#define RX_PIN 12
-#define TX_PIN 13
+#include <MFRC522v2.h>
+#include <MFRC522DriverSPI.h>
+//#include <MFRC522DriverI2C.h>
+#include <MFRC522DriverPinSimple.h>
+#include <MFRC522Debug.h>
+#define RX_PIN 2
+#define TX_PIN 5
 
 #define ECHO_PIN 3
 #define TRIGGER_PIN 4
@@ -15,6 +20,12 @@
 
 SoftwareSerial espSerial(RX_PIN, TX_PIN);
 
+MFRC522DriverPinSimple ss_pin(10); // Configurable, see typical pin layout above.
+
+MFRC522DriverSPI driver{ss_pin}; // Create SPI driver.
+//MFRC522DriverI2C driver{}; // Create I2C driver.
+MFRC522 mfrc522{driver};  // Create MFRC522 instance.
+
 LiquidCrystal lcd(
   LCD_RS_PIN,
   LCD_E_PIN,
@@ -25,8 +36,10 @@ LiquidCrystal lcd(
 );
 
 bool isDetected = false;
-String userInput = "";
-bool waitingForInput = false;
+// String userInput = "";
+// bool waitingForInput = false;
+String uid = "";
+bool isScanned = false;
 
 unsigned long lastUltrasonicTrigger = millis();
 unsigned long ultrasonicTriggerDelay = 100;
@@ -72,6 +85,35 @@ void clearRow(int row) {
   lcd.setCursor(0, row);         // Optional: move cursor back to start
 }
 
+String readCard() {
+	// Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+  // Select one of the cards.
+	if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
+		return;
+	}
+
+	// Dump debug info about the card; PICC_HaltA() is automatically called.
+  MFRC522Debug::PICC_DumpToSerial(mfrc522, Serial, &(mfrc522.uid));
+
+  // get UID string
+  String cardUID = "";
+  for (byte i = 0; i < mfrc522.uid.size; i++) {
+    cardUID += String(mfrc522.uid.uidByte[i], HEX);
+    if (i < mfrc522.uid.size - 1) {
+      cardUID += " ";
+    }
+  }
+  cardUID.toUpperCase();
+
+  // Halt PICC
+  mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
+
+  isScanned = true;
+
+  return cardUID;
+}
+
 void setup() {
   Serial.begin(115200);
   espSerial.begin(115200);
@@ -81,6 +123,12 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoPinInterrupt, CHANGE); // when its rising: low -> high
 
   lcd.begin(16, 2); // (columns, rows)
+
+  Serial.begin(115200);  // Initialize serial communications with the PC for debugging.
+  while (!Serial);     // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4).
+  mfrc522.PCD_Init();  // Init MFRC522 board.
+  MFRC522Debug::PCD_DumpVersionToSerial(mfrc522, Serial);	// Show details of PCD - MFRC522 Card Reader details.
+	Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
 }
 
 void loop() {
@@ -96,14 +144,17 @@ void loop() {
     double distance = getUltrasonicDistance();
 
     if(distance <= 35) { // c,
-      if(!waitingForInput) {
-        waitingForInput = true; // start waiting for input
-      }
+      // if(!waitingForInput) {
+      //   waitingForInput = true; // start waiting for input
+      // }
+      uid = readCard();
       isDetected = true;
+
     } else {
       isDetected = false;
-      waitingForInput = false; // cancel waiting if person leaves
-      userInput = "";
+      isScanned = false;
+      // waitingForInput = false; // cancel waiting if person leaves
+      uid = "";
     }
 
     lcd.setCursor(0, 0);
@@ -119,17 +170,24 @@ void loop() {
     clearRow(1);
   }
 
-  // Non-blocking read from Serial Monitor
-  while(Serial.available() > 0 && waitingForInput) {
-    char c = Serial.read();       // read one character at a time
-    if(c == '\n') {               // end of input
-      espSerial.println(userInput); // send to ESP32
-      Serial.print("Sent to ESP32: ");
-      Serial.println(userInput);
-      userInput = "";
-      waitingForInput = false;
-    } else {
-      userInput += c;             // build the string
-    }
+  if(isScanned && uid != "") {
+     Serial.print("Sent to ESP32: ");
+    espSerial.println(uid);
+    uid = "";
+    isScanned = false;
   }
+
+  // // Non-blocking read from Serial Monitor
+  // while(Serial.available() > 0 && waitingForInput) {
+  //   char c = Serial.read();       // read one character at a time
+  //   if(c == '\n') {               // end of input
+  //     espSerial.println(userInput); // send to ESP32
+  //     Serial.print("Sent to ESP32: ");
+  //     Serial.println(userInput);
+  //     userInput = "";
+  //     waitingForInput = false;
+  //   } else {
+  //     userInput += c;             // build the string
+  //   }
+  // }
 }
