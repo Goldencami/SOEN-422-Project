@@ -59,6 +59,9 @@ The device can:
 
 [Link to state machine](https://drive.google.com/file/d/1GU_f6bgyF_i9jYTB-THIqsMhVd-O8-gB/view?usp=sharing)
 
+## Circuit
+<img width="778" height="651" alt="Image" src="https://github.com/user-attachments/assets/456ec88c-4b3a-49b4-aa05-a40dc81a6d84" />
+
 ## TTGO LoRA 32
 <img width="679" height="508" alt="Image" src="https://github.com/user-attachments/assets/6566511f-7749-4ce7-ab57-6527369994e7" />
 
