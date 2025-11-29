@@ -8,11 +8,13 @@
 #define BTN_PIN 36
 #define MQ1_PIN 39
 
-#define ECHO_PIN 15
-#define TRIGGER_PIN 25
+#define IR_PIN 34
 
 // String correctCode = "test1234";
 String correctUid = "91 21 1E AA"; // replace on developer's side
+
+bool personExiting = false;
+bool personEntering = false;
 
 unsigned long MQdelay = 100;
 unsigned long lastMQdelay = 0;
@@ -41,39 +43,6 @@ unsigned long alarmStartTime = 0;
 byte redLEDState = LOW;
 unsigned long redLEDBlink = 700;
 unsigned long lastRedLEDBlink = millis();
-
-// unsigned long lastUltrasonicTrigger = millis();
-// unsigned long ultrasonicTriggerDelay = 100;
-
-// volatile unsigned long pulseInTimeBegin;
-// volatile unsigned long pulseInTimeEnd;
-// volatile bool newExitDistanceAvailable = false;
-
-// double getUltrasonicDistance() {
-//   double durationMicros = pulseInTimeEnd- pulseInTimeBegin; 
-//   double distance = durationMicros/58.0; //cm
-//   return distance;
-// }
-
-// void triggerUltrasonicSensor() {
-//   digitalWrite(TRIGGER_PIN, LOW);
-//   delayMicroseconds(2);
-//   digitalWrite(TRIGGER_PIN, HIGH);
-//   delayMicroseconds(10);
-//   digitalWrite(TRIGGER_PIN, LOW);
-// }
-
-// void echoPinInterrupt() {
-//   if(digitalRead(ECHO_PIN) == HIGH) { // start measuring
-//     // when signal is rising
-//     pulseInTimeBegin = micros();
-//   }
-//   else {
-//     // when signal is falling
-//     pulseInTimeEnd = micros();
-//     newExitDistanceAvailable = true;
-//   }
-// }
 
 // servo will rotate from 0 to 180 degrees
 void unlockDoor() {
@@ -197,9 +166,7 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   pinMode(BTN_PIN, INPUT);
 
-  // pinMode(ECHO_PIN, INPUT);
-  // pinMode(TRIGGER_PIN, OUTPUT);
-  // attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoPinInterrupt, CHANGE); // when its rising: low -> high
+  // pinMode(IR_PIN, INPUT);
 
   myServo.attach(SERVO_PIN); // attaches the servo to pin
   myServo.write(0);
@@ -219,13 +186,17 @@ void loop() {
     Serial.print("Message Received: ");
     Serial.println(data);
 
-    if(correctUid == data) {
+    if(correctUid == data && !personExiting) {
       isUnlocking = true;
       isLocking = false;
+      personEntering = true;
+      personExiting = false;
     }
     else {
       isUnlocking = false;
       isLocking = true;
+      personEntering = false;
+      personExiting = false;
       digitalWrite(GREEN_LED_PIN, LOW);
       digitalWrite(RED_LED_PIN, HIGH);
       bipBuzzer();
@@ -233,28 +204,16 @@ void loop() {
     delay(700);
   }
 
-  // // Ultrasonic sensor for exiting
-  // unsigned long timeNow = millis();
-
-  // if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
-  //   lastUltrasonicTrigger += ultrasonicTriggerDelay;
-  //   triggerUltrasonicSensor();
+  // handle exiting sensor
+  // int irValue = analogRead(IR_PIN);
+  // if(irValue <= 500 && !personEntering) {
+  //   Serial.println(irValue);
+  //   Serial.println("Exiting");
+  //   isUnlocking = true;
+  //   personExiting = true;
+  //   personEntering = false;
   // }
-
-  // if(newExitDistanceAvailable) {
-  //   newExitDistanceAvailable = false;
-  //   double distance = getUltrasonicDistance();
-
-  //   // Serial.println(distance);
-
-  //   if(distance <= 15 && !isUnlocking) {
-  //     isUnlocking = true;
-  //     isLocking = false;
-  //     Serial.println("Person detected at exit!");
-  //     Serial.println(distance);
-  //   }
-  // }
-
+  
   // handle unlocking
   if (isUnlocking) {
     unlockDoor();
@@ -277,6 +236,8 @@ void loop() {
     if (pos <= 0) {
       Serial.println("Door fully locked");
       isLocking = false;
+      personEntering = false;
+      personExiting = false;
       myServo.detach();
       delay(500);
       myServo.attach(SERVO_PIN); // reattach for next cycle
