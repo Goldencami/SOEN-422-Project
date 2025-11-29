@@ -42,38 +42,38 @@ byte redLEDState = LOW;
 unsigned long redLEDBlink = 700;
 unsigned long lastRedLEDBlink = millis();
 
-unsigned long lastUltrasonicTrigger = millis();
-unsigned long ultrasonicTriggerDelay = 100;
+// unsigned long lastUltrasonicTrigger = millis();
+// unsigned long ultrasonicTriggerDelay = 100;
 
-volatile unsigned long pulseInTimeBegin;
-volatile unsigned long pulseInTimeEnd;
-volatile bool newExitDistanceAvailable = false;
+// volatile unsigned long pulseInTimeBegin;
+// volatile unsigned long pulseInTimeEnd;
+// volatile bool newExitDistanceAvailable = false;
 
-double getUltrasonicDistance() {
-  double durationMicros = pulseInTimeEnd- pulseInTimeBegin; 
-  double distance = durationMicros/58.0; //cm
-  return distance;
-}
+// double getUltrasonicDistance() {
+//   double durationMicros = pulseInTimeEnd- pulseInTimeBegin; 
+//   double distance = durationMicros/58.0; //cm
+//   return distance;
+// }
 
-void triggerUltrasonicSensor() {
-  digitalWrite(TRIGGER_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIGGER_PIN, LOW);
-}
+// void triggerUltrasonicSensor() {
+//   digitalWrite(TRIGGER_PIN, LOW);
+//   delayMicroseconds(2);
+//   digitalWrite(TRIGGER_PIN, HIGH);
+//   delayMicroseconds(10);
+//   digitalWrite(TRIGGER_PIN, LOW);
+// }
 
-void echoPinInterrupt() {
-  if(digitalRead(ECHO_PIN) == HIGH) { // start measuring
-    // when signal is rising
-    pulseInTimeBegin = micros();
-  }
-  else {
-    // when signal is falling
-    pulseInTimeEnd = micros();
-    newExitDistanceAvailable = true;
-  }
-}
+// void echoPinInterrupt() {
+//   if(digitalRead(ECHO_PIN) == HIGH) { // start measuring
+//     // when signal is rising
+//     pulseInTimeBegin = micros();
+//   }
+//   else {
+//     // when signal is falling
+//     pulseInTimeEnd = micros();
+//     newExitDistanceAvailable = true;
+//   }
+// }
 
 // servo will rotate from 0 to 180 degrees
 void unlockDoor() {
@@ -197,9 +197,9 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   pinMode(BTN_PIN, INPUT);
 
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(TRIGGER_PIN, OUTPUT);
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoPinInterrupt, CHANGE); // when its rising: low -> high
+  // pinMode(ECHO_PIN, INPUT);
+  // pinMode(TRIGGER_PIN, OUTPUT);
+  // attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoPinInterrupt, CHANGE); // when its rising: low -> high
 
   myServo.attach(SERVO_PIN); // attaches the servo to pin
   myServo.write(0);
@@ -233,27 +233,27 @@ void loop() {
     delay(700);
   }
 
-  // Ultrasonic sensor for exiting
-  unsigned long timeNow = millis();
+  // // Ultrasonic sensor for exiting
+  // unsigned long timeNow = millis();
 
-  if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
-    lastUltrasonicTrigger += ultrasonicTriggerDelay;
-    triggerUltrasonicSensor();
-  }
+  // if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
+  //   lastUltrasonicTrigger += ultrasonicTriggerDelay;
+  //   triggerUltrasonicSensor();
+  // }
 
-  if(newExitDistanceAvailable) {
-    newExitDistanceAvailable = false;
-    double distance = getUltrasonicDistance();
+  // if(newExitDistanceAvailable) {
+  //   newExitDistanceAvailable = false;
+  //   double distance = getUltrasonicDistance();
 
-    // Serial.println(distance);
+  //   // Serial.println(distance);
 
-    if(distance <= 15 && !isUnlocking) {
-      isUnlocking = true;
-      isLocking = false;
-      Serial.println("Person detected at exit!");
-      Serial.println(distance);
-    }
-  }
+  //   if(distance <= 15 && !isUnlocking) {
+  //     isUnlocking = true;
+  //     isLocking = false;
+  //     Serial.println("Person detected at exit!");
+  //     Serial.println(distance);
+  //   }
+  // }
 
   // handle unlocking
   if (isUnlocking) {
