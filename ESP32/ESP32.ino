@@ -8,10 +8,13 @@
 #define BTN_PIN 36
 #define MQ1_PIN 39
 
+#define ECHO_PIN 15
+#define TRIGGER_PIN 25
+
 // String correctCode = "test1234";
 String correctUid = "91 21 1E AA"; // replace on developer's side
 
-unsigned long MQdelay = 400;
+unsigned long MQdelay = 100;
 unsigned long lastMQdelay = 0;
 
 unsigned int debounceDelay = 50;
@@ -38,6 +41,39 @@ unsigned long alarmStartTime = 0;
 byte redLEDState = LOW;
 unsigned long redLEDBlink = 700;
 unsigned long lastRedLEDBlink = millis();
+
+unsigned long lastUltrasonicTrigger = millis();
+unsigned long ultrasonicTriggerDelay = 100;
+
+volatile unsigned long pulseInTimeBegin;
+volatile unsigned long pulseInTimeEnd;
+volatile bool newExitDistanceAvailable = false;
+
+double getUltrasonicDistance() {
+  double durationMicros = pulseInTimeEnd- pulseInTimeBegin; 
+  double distance = durationMicros/58.0; //cm
+  return distance;
+}
+
+void triggerUltrasonicSensor() {
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+}
+
+void echoPinInterrupt() {
+  if(digitalRead(ECHO_PIN) == HIGH) { // start measuring
+    // when signal is rising
+    pulseInTimeBegin = micros();
+  }
+  else {
+    // when signal is falling
+    pulseInTimeEnd = micros();
+    newExitDistanceAvailable = true;
+  }
+}
 
 // servo will rotate from 0 to 180 degrees
 void unlockDoor() {
@@ -69,52 +105,66 @@ void bipBuzzer() {
 }
 
 void handleFireAlarm() {
-  byte newBtnState = digitalRead(BTN_PIN);
+  unsigned long timeNow = millis();
 
-  // Start alarm if button pressed and alarm is not already on
-  if(newBtnState == HIGH && !alarmOn) {
+  if((detectSmoke() || handleButtonAlarm()) && !alarmOn) {
     alarmOn = true;
-    alarmStartTime = millis(); // start the timer
-    Serial.println("ALARM ACTIVATED!");
+    alarmStartTime = timeNow; // only set star timer once
+    Serial.println("FIRE ALARM ACTIVATED!");
   }
-
-  detectSmoke();
 
   if(alarmOn) {
     unlockDoor();
     // Toggle buzzer ON/OFF every beepInterval
-    unsigned long now = millis();
-    if(now - lastBeepTime >= beepInterval) {
+    if(timeNow - lastBeepTime >= beepInterval) {
       buzzerState = !buzzerState;
-      digitalWrite(BUZZER_PIN, buzzerState ? HIGH : LOW);
+      digitalWrite(BUZZER_PIN, buzzerState ? HIGH : LOW); // beep buzzer
       blinkRedLED();
-      lastBeepTime = now;
+      lastBeepTime = timeNow;
     }
 
     // Check if alarm duration has passed
-    if(now - alarmStartTime >= alarmDuration) {
+    if(timeNow - alarmStartTime >= alarmDuration) {
       alarmOn = false;
       digitalWrite(BUZZER_PIN, LOW); // ensure buzzer off
       buzzerState = false;
       Serial.println("Alarm ended.");
-      lockDoor();
+      
+      // Trigger locking
+      isUnlocking = false;   // stop unlocking
+      isLocking = true;      // start gradual locking
     }
   }
 }
 
-void detectSmoke() {
+bool handleButtonAlarm() {
+  byte newBtnState = digitalRead(BTN_PIN);
+
+  // Start alarm if button pressed and alarm is not already on
+  if(newBtnState == HIGH) {
+    return true;
+  }
+
+  return false;
+}
+
+bool detectSmoke() {
   unsigned long timeNow = millis();
 
   if (timeNow - lastMQdelay >= MQdelay) {
     lastMQdelay = timeNow;
     
-    if(analogRead(MQ1_PIN) > 3000) { // test value for smoke detection
-      alarmOn = true;
-      Serial.println("FIRE ALARM ACTIVATED!");
+    int smokeVal = analogRead(MQ1_PIN);  // read MQ sensor
+    // Serial.print("Smoke sensor value: ");
+    // Serial.println(smokeVal);
+
+    if(smokeVal > 2500) { // test value for smoke detection
+      Serial.print("Smoke sensor value: ");
+      Serial.println(smokeVal);
+      return true;
     }
-    else {
-      alarmOn = false;
-    }
+
+    return false;
     // Serial.println(analogRead(MQ1_PIN));
   }
 }
@@ -147,6 +197,10 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   pinMode(BTN_PIN, INPUT);
 
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(TRIGGER_PIN, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), echoPinInterrupt, CHANGE); // when its rising: low -> high
+
   myServo.attach(SERVO_PIN); // attaches the servo to pin
   myServo.write(0);
 }
@@ -156,8 +210,8 @@ void loop() {
   if(alarmOn) {
     return; // block everything else while alarm is active
   }
-  // digitalWrite(BUZZER_PIN, LOW);
   
+  // Read data transmitted by UART from Arduino UNO
   if (Serial2.available()) { // Only read if data is present
     String data = Serial2.readStringUntil('\n'); // Read full message
     data.trim(); // remove any trailing newline or spaces
@@ -177,6 +231,28 @@ void loop() {
       bipBuzzer();
     }
     delay(700);
+  }
+
+  // Ultrasonic sensor for exiting
+  unsigned long timeNow = millis();
+
+  if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
+    lastUltrasonicTrigger += ultrasonicTriggerDelay;
+    triggerUltrasonicSensor();
+  }
+
+  if(newExitDistanceAvailable) {
+    newExitDistanceAvailable = false;
+    double distance = getUltrasonicDistance();
+
+    // Serial.println(distance);
+
+    if(distance <= 15 && !isUnlocking) {
+      isUnlocking = true;
+      isLocking = false;
+      Serial.println("Person detected at exit!");
+      Serial.println(distance);
+    }
   }
 
   // handle unlocking

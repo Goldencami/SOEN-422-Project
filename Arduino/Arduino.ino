@@ -171,7 +171,7 @@ void loop() {
   }
 
   if(isScanned && uid != "") {
-     Serial.print("Sent to ESP32: ");
+    Serial.print("Sent to ESP32: ");
     espSerial.println(uid);
     uid = "";
     isScanned = false;
