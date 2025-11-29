@@ -42,7 +42,7 @@ bool isDetected = false;
 // bool waitingForInput = false;
 
 unsigned long lastUltrasonicTrigger = millis();
-unsigned long ultrasonicTriggerDelay = 100;
+unsigned long ultrasonicTriggerDelay = 150;
 
 volatile unsigned long pulseInTimeBegin;
 volatile unsigned long pulseInTimeEnd;
@@ -143,28 +143,30 @@ void loop() {
     newDistanceAvailable = false;
     double distance = getUltrasonicDistance();
 
-    if(distance <= 35) { // c,
+    if(distance <= 35) { // cm
       // if(!waitingForInput) {
       //   waitingForInput = true; // start waiting for input
       // }
       uid = readCard();
       isDetected = true;
-
     } else {
       isDetected = false;
       isScanned = false;
       // waitingForInput = false; // cancel waiting if person leaves
       uid = "";
     }
-
+    clearRow(0);
     lcd.setCursor(0, 0);
     lcd.print("Distance: ");
     lcd.print(distance);
   }
 
   if(isDetected) {
-    lcd.setCursor(0, 1);
+    lcd.setCursor(0, 0);
     lcd.print("Person detected!");
+    lcd.setCursor(0, 1);
+    lcd.print("Scan your ID.");
+
   }
   else {
     clearRow(1);
