@@ -1,0 +1,4 @@
+DatabaseRequest/secrets.h
+.DS_Store
+.vscode
+ESP32/secrets.h

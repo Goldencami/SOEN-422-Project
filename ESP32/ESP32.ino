@@ -1,3 +1,9 @@
+#define ENABLE_USER_AUTH // Only enables user authentication 
+#define ENABLE_DATABASE  // Only enables database access
+
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <FirebaseClient.h>
 #include <ESP32Servo.h>
 #define TX_PIN 4
 #define RX_PIN 13
@@ -10,8 +16,7 @@
 
 #define IR_PIN 34
 
-// String correctCode = "test1234";
-String correctUid = "91 21 1E AA"; // replace on developer's side
+#include "secrets.h"
 
 bool personExiting = false;
 bool personEntering = false;
@@ -43,6 +48,21 @@ unsigned long alarmStartTime = 0;
 byte redLEDState = LOW;
 unsigned long redLEDBlink = 700;
 unsigned long lastRedLEDBlink = millis();
+
+// Firebase objects
+UserAuth user_auth(WEB_API_KEY, USER_EMAIL, USER_PASSWORD);
+FirebaseApp app;
+WiFiClientSecure ssl_client;
+using AsyncClient = AsyncClientClass;
+AsyncClient aClient(ssl_client);
+RealtimeDatabase db;
+
+// UID state shared with Firebase callback
+String lastUid;
+
+// Flags for synchronous wrapper
+bool uidAllowed = false;
+bool uidCheckCompleted = false;
 
 // servo will rotate from 0 to 180 degrees
 void unlockDoor() {
@@ -157,6 +177,108 @@ void blinkRedLED() {
   }
 }
 
+// Normalize UID to be a shortened uppercase string (ex: AB CD EF --> ABCDEF)
+String normalizeUid(const String &raw) {
+  String out;
+  for (size_t i = 0; i < raw.length(); i++) {
+    char c = raw[i];
+    if (c != ' ' && c != '\r' && c != '\n' && c != '\t') out += (char)toupper(c);
+  }
+  return out;
+}
+
+void connectWifi() {
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(300);
+    Serial.print(".");
+  }
+  Serial.println(" connected");
+}
+
+// Callback function used for authentication and database result
+void firebaseCallback(AsyncResult &result) {
+  if (!result.isResult()) return;   // ignore non-result callbacks
+
+  // Realisiticaly this shouldn't happen although important to log if does
+  if (result.isError()) {
+    Serial.print("Firebase error: ");
+    Serial.println(result.error().message());
+    uidAllowed = false;
+    uidCheckCompleted = true;
+    return;
+  }
+
+  // Likewise with previous if-statement, shouldn't happen although good to log
+  if (!result.available()) {
+    Serial.println("Firebase returned result without payload");
+    uidAllowed = false;
+    uidCheckCompleted = true;
+    return;
+  }
+
+ // Verify this return was for our call to checkUid (from db.get call)
+  if (result.uid() == "checkUid") {
+    String payload = result.c_str();  // Expected return: true, null
+    payload.trim();
+
+    Serial.print("Firebase raw payload for ");
+    Serial.print(lastUid);
+    Serial.print(" = '");
+    Serial.print(payload);
+    Serial.println("'");
+
+    uidAllowed = (payload == "true");  // your DB stores boolean true
+    uidCheckCompleted = true;
+  }
+}
+
+void setupFirebase() {
+  ssl_client.setInsecure();
+  initializeApp(aClient, app, getAuth(user_auth), firebaseCallback);
+  app.getApp<RealtimeDatabase>(db);
+  db.url(DATABASE_URL);
+}
+
+bool validateUidWithFirebase(const String &rawUid) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected, denying by default");
+    return false;
+  }
+  if (!app.ready()) {
+    Serial.println("Firebase not ready, denying by default");
+    return false;
+  }
+
+  lastUid = normalizeUid(rawUid);
+  String path = "/allowed_uids/" + lastUid;
+
+  uidCheckCompleted = false;
+  uidAllowed = false;
+
+  // Note: Request is asynchronous
+  db.get(aClient, path, firebaseCallback, false, "checkUid");
+
+  // Wait up to 3 seconds (timeout) for the callback to set uidCheckCompleted
+  unsigned long start = millis();
+  const unsigned long timeout = 3000;
+
+  // While not completed and within timeout, wait
+  while (!uidCheckCompleted && (millis() - start < timeout)) {
+    app.loop();  // let Firebase process responses
+    delay(10);   // avoid tight busy loop
+  }
+
+  if (!uidCheckCompleted) {
+    Serial.println("Firebase UID check timed out, denying by default");
+    return false;
+  }
+
+  return uidAllowed;
+}
+
+
 void setup() {
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
@@ -168,6 +290,9 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   pinMode(BTN_PIN, INPUT);
 
+  connectWifi();
+  setupFirebase();
+
   // pinMode(IR_PIN, INPUT);
 
   myServo.attach(SERVO_PIN); // attaches the servo to pin
@@ -175,6 +300,8 @@ void setup() {
 }
 
 void loop() {
+  app.loop();
+
   handleFireAlarm();
   if(alarmOn) {
     return; // block everything else while alarm is active
@@ -188,7 +315,9 @@ void loop() {
     Serial.print("Message Received: ");
     Serial.println(data);
 
-    if(correctUid == data && !personExiting) {
+    bool personAllowed = validateUidWithFirebase(data);
+
+    if(personAllowed && !personExiting) {
       isUnlocking = true;
       isLocking = false;
       personEntering = true;
