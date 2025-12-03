@@ -60,7 +60,7 @@ The device can:
 [Link to state machine](https://drive.google.com/file/d/1GU_f6bgyF_i9jYTB-THIqsMhVd-O8-gB/view?usp=sharing)
 
 ## Circuit
-<img width="1262" height="931" alt="Image" src="https://github.com/user-attachments/assets/226a48db-a70d-4fef-b819-21e57edcdb94" />
+<img width="1262" height="931" alt="Image" src="https://github.com/user-attachments/assets/36c66017-74e7-4356-99b4-e61cd7c156d0" />
 
 ### RFID Pin Layout
 ```
