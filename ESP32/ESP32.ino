@@ -155,6 +155,11 @@ void blinkRedLED() {
   }
 }
 
+// TODO: Implement validation of Uid here
+// bool validateUid(){
+
+// }
+
 void setup() {
   Serial.begin(115200);
   Serial2.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
@@ -186,6 +191,7 @@ void loop() {
     Serial.print("Message Received: ");
     Serial.println(data);
 
+    // TODO: add validation of correctUid here
     if(correctUid == data && !personExiting) {
       isUnlocking = true;
       isLocking = false;
