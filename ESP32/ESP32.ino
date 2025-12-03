@@ -211,14 +211,14 @@ void loop() {
   }
 
   // handle exiting sensor
-  // int irValue = analogRead(IR_PIN);
-  // if(irValue <= 500 && !personEntering) {
-  //   Serial.println(irValue);
-  //   Serial.println("Exiting");
-  //   isUnlocking = true;
-  //   personExiting = true;
-  //   personEntering = false;
-  // }
+  int irValue = analogRead(IR_PIN);
+  if(irValue > 2000 && !personEntering && !isUnlocking) {
+    Serial.println(irValue);
+    Serial.println("Exiting");
+    isUnlocking = true;
+    personExiting = true;
+    personEntering = false;
+  }
   
   // handle unlocking
   if (isUnlocking) {
@@ -238,6 +238,7 @@ void loop() {
   if (isLocking) {
     lockDoor();
     digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(RED_LED_PIN, LOW);
 
     if (pos <= 0) {
       Serial.println("Door fully locked");
