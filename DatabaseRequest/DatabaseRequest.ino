@@ -15,6 +15,7 @@ WiFiClientSecure ssl_client;
 using AsyncClient = AsyncClientClass;
 AsyncClient aClient(ssl_client);
 RealtimeDatabase db;
+String lastUid;
 
 // Normalize UID to be a shortened uppercase string (ex: AB CD EF --> ABCDEF)
 String normalizeUid(const String &raw) {
@@ -92,6 +93,30 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  app.loop();  // important to keep app running
 
+  if (Serial.available()) { // This is only for testing, we won't need input for actual project
+    String raw = Serial.readStringUntil('\n'); // read input from Serial Monitor
+    raw.trim();
+    if (!raw.length()) return; // do nothing if user enters nothing lol
+
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi not connected");
+      return;
+    }
+    if (!app.ready()) {
+      Serial.println("Firebase not ready, trying again");
+      return;
+    }
+
+    lastUid = normalizeUid(raw);
+    String path = "/allowed_uids/" + lastUid;
+
+    Serial.print("Checking UID ");
+    Serial.print(lastUid);
+    Serial.print(" at path: ");
+    Serial.println(path);
+
+    db.get(aClient, path, firebaseCallback, false, "checkUid");
+  }
 }
