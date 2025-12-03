@@ -82,6 +82,8 @@ The device can:
 ## Library
 Please install the following library:
 * RFID_MFRC522v2
+* ESP32Servo
+* FirebaseClient
 
 ## Team Members
 * Maria Camila Guzman (40239038)
