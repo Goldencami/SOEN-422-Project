@@ -23,7 +23,6 @@ SoftwareSerial espSerial(RX_PIN, TX_PIN);
 MFRC522DriverPinSimple ss_pin(10); // Configurable, see typical pin layout above.
 
 MFRC522DriverSPI driver{ss_pin}; // Create SPI driver.
-//MFRC522DriverI2C driver{}; // Create I2C driver.
 MFRC522 mfrc522{driver};  // Create MFRC522 instance.
 
 LiquidCrystal lcd(
@@ -35,13 +34,17 @@ LiquidCrystal lcd(
   LCD_D7_PIN
 );
 
-String uid = "";
-bool isScanned = false;
-bool isDetected = false;
-// String userInput = "";
-// bool waitingForInput = false;
+enum State {
+    IDLE,
+    PERSON_DETECTED,
+    WAIT_FOR_CARD
+};
 
-unsigned long lastUltrasonicTrigger = millis();
+State currentState = IDLE;
+
+String uid = "";
+
+unsigned long lastUltrasonicTrigger = 0;
 unsigned long ultrasonicTriggerDelay = 150;
 
 volatile unsigned long pulseInTimeBegin;
@@ -78,19 +81,37 @@ void echoPinInterrupt() {
 }
 
 void clearRow(int row) {
-  lcd.setCursor(0, row);         // Move cursor to start of the row
+  lcd.setCursor(0, row); // Move cursor to start of the row
   for (int i = 0; i < 16; i++) { // Overwrite all columns with spaces
     lcd.print(" ");
   }
-  lcd.setCursor(0, row);         // Optional: move cursor back to start
+  lcd.setCursor(0, row); // move cursor back to start
+}
+
+void showDistance(double dist) {
+  clearRow(0);
+  lcd.setCursor(0,0);
+  lcd.print("Distance: ");
+  lcd.print(dist);
+}
+
+void showPersonDetected() {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Person detected!");
+  lcd.setCursor(0,1);
+  lcd.print("Scan your ID.");
 }
 
 String readCard() {
 	// Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   // Select one of the cards.
-	if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
-		return;
-	}
+  if (!mfrc522.PICC_IsNewCardPresent()) {
+    return "";
+  }
+  if (!mfrc522.PICC_ReadCardSerial()) {
+    return "";
+  }
 
 	// Dump debug info about the card; PICC_HaltA() is automatically called.
   MFRC522Debug::PICC_DumpToSerial(mfrc522, Serial, &(mfrc522.uid));
@@ -109,13 +130,11 @@ String readCard() {
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 
-  isScanned = true;
-
   return cardUID;
 }
 
 void setup() {
-  Serial.begin(115200);
+  // Serial.begin(115200);
   espSerial.begin(115200);
 
   pinMode(ECHO_PIN, INPUT);
@@ -135,7 +154,7 @@ void loop() {
   unsigned long timeNow = millis();
 
   if(timeNow - lastUltrasonicTrigger > ultrasonicTriggerDelay) {
-    lastUltrasonicTrigger += ultrasonicTriggerDelay;
+    lastUltrasonicTrigger = timeNow;
     triggerUltrasonicSensor();
   }
 
@@ -143,53 +162,39 @@ void loop() {
     newDistanceAvailable = false;
     double distance = getUltrasonicDistance();
 
-    if(distance <= 35) { // cm
-      // if(!waitingForInput) {
-      //   waitingForInput = true; // start waiting for input
-      // }
-      uid = readCard();
-      isDetected = true;
-    } else {
-      isDetected = false;
-      isScanned = false;
-      // waitingForInput = false; // cancel waiting if person leaves
-      uid = "";
+    if (currentState == IDLE)
+      showDistance(distance);
+
+    if (distance <= 35) {
+      if (currentState == IDLE) {
+        currentState = PERSON_DETECTED;
+        showPersonDetected();
+      }
+    } 
+    else {
+      if (currentState != IDLE) {
+        currentState = IDLE;
+        uid = "";
+        lcd.clear();
+      }
     }
-    clearRow(0);
-    lcd.setCursor(0, 0);
-    lcd.print("Distance: ");
-    lcd.print(distance);
   }
 
-  if(isDetected) {
-    lcd.setCursor(0, 0);
-    lcd.print("Person detected!");
-    lcd.setCursor(0, 1);
-    lcd.print("Scan your ID.");
-
-  }
-  else {
-    clearRow(1);
+  // Handle when someone is detected
+  if (currentState == PERSON_DETECTED) {
+    String card = readCard();
+    if (card != "") {
+      uid = card;
+      currentState = WAIT_FOR_CARD;
+    }
   }
 
-  if(isScanned && uid != "") {
+  // Handle waiting for card to be scanned when someone is detected
+  if (currentState == WAIT_FOR_CARD) {
     Serial.print("Sent to ESP32: ");
+    Serial.println(uid);
     espSerial.println(uid);
     uid = "";
-    isScanned = false;
+    currentState = IDLE;
   }
-
-  // // Non-blocking read from Serial Monitor
-  // while(Serial.available() > 0 && waitingForInput) {
-  //   char c = Serial.read();       // read one character at a time
-  //   if(c == '\n') {               // end of input
-  //     espSerial.println(userInput); // send to ESP32
-  //     Serial.print("Sent to ESP32: ");
-  //     Serial.println(userInput);
-  //     userInput = "";
-  //     waitingForInput = false;
-  //   } else {
-  //     userInput += c;             // build the string
-  //   }
-  // }
 }
