@@ -36,12 +36,57 @@ void connectWifi() {
   Serial.println(" connected");
 }
 
+// Callback function used for authentication and database result
+void firebaseCallback(AsyncResult &result) {
+  if (!result.isResult()) return;   // ignore non-result callbacks
+
+  if (result.isError()) {
+    Serial.print("Firebase error: ");
+    Serial.println(result.error().message());
+    return;
+  }
+
+  if (!result.available()) {
+    Serial.print("Firebase returned result without payload");
+    Serial.println(result.error().message());
+    return;
+  }
+
+  // Verify this return was for our call to checkUid (from db.get call)
+  if (result.uid() == "checkUid") {
+    String payload = result.c_str(); // Expected return: true, false, null, "" 
+    payload.trim();
+    Serial.print("Firebase raw payload for ");
+    Serial.print(lastUid);
+    Serial.print(" = '");
+    Serial.print(payload);
+    Serial.println("'");
+
+    bool allowed = (payload == "true");
+    if (allowed) {
+      Serial.println("ACCESS GRANTED");
+    } else {
+      Serial.println("ACCESS DENIED");
+    }
+    Serial.println();
+  }
+}
+
+void setupFirebase() {
+  ssl_client.setInsecure();
+  initializeApp(aClient, app, getAuth(user_auth), firebaseCallback); // client, app, authenticaiton and callback needed
+  app.getApp<RealtimeDatabase>(db);
+  db.url(DATABASE_URL);
+}
+
+
 void setup() {
   Serial.begin(115200);
   delay(500);
 
   Serial.println("FirebaseClient playground test");
   connectWifi();
+  setupFirebase();
 
   Serial.println("Enter UID into Serial Monitor");
 }
