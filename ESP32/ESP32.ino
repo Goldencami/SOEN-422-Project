@@ -38,6 +38,9 @@ bool isLocking = false;
 
 bool alarmOn = false;
 
+bool fireAlarmJustEnded = false;
+unsigned long fireAlarmEndTime = 0;
+
 unsigned long beepInterval = 500;
 unsigned long lastBeepTime = 0;
 bool buzzerState = false;
@@ -119,6 +122,9 @@ void handleFireAlarm() {
       buzzerState = false;
       Serial.println("Alarm ended.");
       
+      fireAlarmJustEnded = true;
+      fireAlarmEndTime = millis();
+
       // Trigger locking
       isUnlocking = false;   // stop unlocking
       isLocking = true;      // start gradual locking
@@ -293,7 +299,7 @@ void setup() {
   connectWifi();
   setupFirebase();
 
-  // pinMode(IR_PIN, INPUT);
+  pinMode(IR_PIN, INPUT);
 
   myServo.attach(SERVO_PIN); // attaches the servo to pin
   myServo.write(0);
@@ -337,12 +343,17 @@ void loop() {
 
   // handle exiting sensor
   int irValue = analogRead(IR_PIN);
-  if(irValue > 2000 && !personEntering && !isUnlocking) {
-    Serial.println(irValue);
-    Serial.println("Exiting");
-    isUnlocking = true;
-    personExiting = true;
-    personEntering = false;
+  if(irValue > 2500 && !personEntering && !isUnlocking && (!fireAlarmJustEnded || millis() - fireAlarmEndTime > 3000)) {
+      Serial.println(irValue);
+      Serial.println("Exiting");
+      isUnlocking = true;
+      personExiting = true;
+      personEntering = false;
+  }
+
+  // Reset the flag after 3 seconds
+  if(fireAlarmJustEnded && millis() - fireAlarmEndTime > 3000) {
+      fireAlarmJustEnded = false;
   }
   
   // handle unlocking
