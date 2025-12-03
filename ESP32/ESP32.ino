@@ -136,6 +136,8 @@ bool detectSmoke() {
     return false;
     // Serial.println(analogRead(MQ1_PIN));
   }
+  
+  return false;
 }
 
 void blinkRedLED() {
