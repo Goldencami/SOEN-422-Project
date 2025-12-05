@@ -62,6 +62,9 @@ The device can:
 ## Circuit
 <img width="1262" height="931" alt="Image" src="https://github.com/user-attachments/assets/36c66017-74e7-4356-99b4-e61cd7c156d0" />
 
+## Block Diagram Diagram
+<img width="602" height="322" alt="Block Diagram" src="https://github.com/user-attachments/assets/b5c191b3-3acf-48a9-9105-b001a35d8463" />
+
 ### RFID Pin Layout
 ```
  * Typical pin layout used:
