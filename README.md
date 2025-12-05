@@ -3,6 +3,18 @@ Concordia University’s current physical access control allows largely unrestri
 
 The Smart Entrance Control System aims to modernize campus access with a transparent, user-friendly, state-driven interface that enhances security and safety while reducing confusion for students and staff.
 
+## Setup
+### Adding ESP32 Board Manager URL
+```bash
+https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+```
+
+### Libraries
+Please install the following libraries:
+* RFID_MFRC522v2
+* ESP32Servo
+* FirebaseClient
+
 ## Problem Summary
 Most Concordia buildings either:
 * allow unrestricted entry, or
@@ -81,12 +93,6 @@ The device can:
 
 ## TTGO LoRA 32
 <img width="679" height="508" alt="Image" src="https://github.com/user-attachments/assets/6566511f-7749-4ce7-ab57-6527369994e7" />
-
-## Library
-Please install the following library:
-* RFID_MFRC522v2
-* ESP32Servo
-* FirebaseClient
 
 ## Team Members
 * Maria Camila Guzman (40239038)
