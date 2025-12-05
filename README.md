@@ -77,6 +77,13 @@ The device can:
 ## Block Diagram Diagram
 <img width="602" height="322" alt="Block Diagram" src="https://github.com/user-attachments/assets/b5c191b3-3acf-48a9-9105-b001a35d8463" />
 
+## Card Verification Sequence Diagram
+<img width="978" height="609" alt="Sequence Diagram - Card Verification" src="https://github.com/user-attachments/assets/89bd3394-0a09-4056-8d44-5a645e2f74f2" />
+
+## Fire Alarm Sequence Diagram
+<img width="609" height="610" alt="Sequence Diagram - Alarm" src="https://github.com/user-attachments/assets/4b319a04-cbbb-4b4e-ba8a-2d683d6007ce" />
+
+
 ### RFID Pin Layout
 ```
  * Typical pin layout used:
@@ -93,6 +100,9 @@ The device can:
 
 ## TTGO LoRA 32
 <img width="679" height="508" alt="Image" src="https://github.com/user-attachments/assets/6566511f-7749-4ce7-ab57-6527369994e7" />
+
+## Video Demo Link
+https://youtu.be/JWlayMVvc1I
 
 ## Team Members
 * Maria Camila Guzman (40239038)
