@@ -45,7 +45,7 @@ State currentState = IDLE;
 String uid = "";
 
 unsigned long lastUltrasonicTrigger = 0;
-unsigned long ultrasonicTriggerDelay = 150;
+unsigned long ultrasonicTriggerDelay = 200;
 
 volatile unsigned long pulseInTimeBegin;
 volatile unsigned long pulseInTimeEnd;
@@ -89,9 +89,9 @@ void clearRow(int row) {
 }
 
 void showDistance(double dist) {
-  clearRow(0);
   lcd.setCursor(0,0);
-  lcd.print("Distance: ");
+  lcd.print("Distance:      "); // add spaces to erase old digits
+  lcd.setCursor(10,0); // after "Distance: "
   lcd.print(dist);
 }
 
