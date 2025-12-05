@@ -3,6 +3,18 @@ Concordia University’s current physical access control allows largely unrestri
 
 The Smart Entrance Control System aims to modernize campus access with a transparent, user-friendly, state-driven interface that enhances security and safety while reducing confusion for students and staff.
 
+## Setup
+### Adding ESP32 Board Manager URL
+```bash
+https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+```
+
+### Libraries
+Please install the following libraries:
+* RFID_MFRC522v2
+* ESP32Servo
+* FirebaseClient
+
 ## Problem Summary
 Most Concordia buildings either:
 * allow unrestricted entry, or
@@ -60,7 +72,10 @@ The device can:
 [Link to state machine](https://drive.google.com/file/d/1GU_f6bgyF_i9jYTB-THIqsMhVd-O8-gB/view?usp=sharing)
 
 ## Circuit
-<img width="778" height="651" alt="Image" src="https://github.com/user-attachments/assets/456ec88c-4b3a-49b4-aa05-a40dc81a6d84" />
+<img width="1262" height="931" alt="Image" src="https://github.com/user-attachments/assets/36c66017-74e7-4356-99b4-e61cd7c156d0" />
+
+## Block Diagram Diagram
+<img width="602" height="322" alt="Block Diagram" src="https://github.com/user-attachments/assets/b5c191b3-3acf-48a9-9105-b001a35d8463" />
 
 ### RFID Pin Layout
 ```
@@ -78,10 +93,6 @@ The device can:
 
 ## TTGO LoRA 32
 <img width="679" height="508" alt="Image" src="https://github.com/user-attachments/assets/6566511f-7749-4ce7-ab57-6527369994e7" />
-
-## Library
-Please install the following library:
-* RFID_MFRC522v2
 
 ## Team Members
 * Maria Camila Guzman (40239038)
